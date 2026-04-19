@@ -1,8 +1,8 @@
+import { getSvgJarSourceDirs } from '#lib/get-svg-jar-source-dirs.ts';
+import { parseImportAliases, type ImportAlias } from '#lib/resolve-import-alias.ts';
 import { existsSync, readFileSync } from 'node:fs';
 import path from 'node:path';
 import { globSync } from 'tinyglobby';
-import { getSvgJarSourceDirs } from '#lib/get-svg-jar-source-dirs.ts';
-import { parseImportAliases, type ImportAlias } from '#lib/resolve-import-alias.ts';
 
 const DEFAULT_SOURCE_DIRS = ['public'];
 

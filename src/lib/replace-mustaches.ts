@@ -1,10 +1,10 @@
-import { z, type Collection, type FilteredCollection, type NodePath } from 'zmod';
-import type { GlimmerMustacheStatement } from '#types/glimmer-types.ts';
+import { buildIconImportPath } from '#lib/build-icon-import-path.ts';
 import type { IconKey, UsedIcon } from '#lib/resolve-icon-names.ts';
 import type { ImportAlias } from '#lib/resolve-import-alias.ts';
-import { extractRawIconName, buildComponentTag } from '#utils/glimmer.ts';
+import type { GlimmerMustacheStatement } from '#types/glimmer-types.ts';
+import { buildComponentTag, extractRawIconName } from '#utils/glimmer.ts';
 import { determineIconType } from '#utils/icon-names.ts';
-import { buildIconImportPath } from '#lib/build-icon-import-path.ts';
+import { z, type Collection, type FilteredCollection, type NodePath } from 'zmod';
 
 const j = z;
 

@@ -1,15 +1,15 @@
-import type { FilteredCollection, NodePath } from 'zmod';
+import { resolveIconPath } from '#lib/file-system.ts';
 import type { GlimmerMustacheStatement } from '#types/glimmer-types.ts';
 import { extractRawIconName } from '#utils/glimmer.ts';
 import { determineIconType, iconBaseName, toPascalCase, type IconType } from '#utils/icon-names.ts';
-import { resolveIconPath } from '#lib/file-system.ts';
+import type { FilteredCollection, NodePath } from 'zmod';
 
 /**
  * A reference to a specific icon usage in a source file, including its
  * location for diagnostic reporting.
  */
 export interface UnresolvedIconRef {
-  /** File path and line, e.g. "app/components/banner.gts:34". */
+  /** File path, line, and column, e.g. "app/components/banner.gts:34:12". */
   location: string;
   /** The icon slug that could not be resolved. */
   slug: string;
@@ -19,7 +19,7 @@ export interface UnresolvedIconRef {
  * An icon that was found in multiple source directories.
  */
 export interface AmbiguousIconRef {
-  /** File path and line, e.g. "app/components/banner.gts:34". */
+  /** File path, line, and column, e.g. "app/components/banner.gts:34:12". */
   location: string;
   /** The icon slug. */
   slug: string;
@@ -61,12 +61,14 @@ export interface ResolveResult {
 }
 
 /**
- * Formats a file path and line number into a location string.
+ * Formats a file path, line number, and column into a location string.
  *
- * @example formatLocation('app/components/banner.gts', 34) → 'app/components/banner.gts:34'
+ * @example formatLocation('app/components/banner.gts', 34, 12) → 'app/components/banner.gts:34:12'
  */
-function formatLocation(filePath: string, line: number | undefined): string {
-  return line != null ? `${filePath}:${line}` : filePath;
+function formatLocation(filePath: string, line: number | undefined, column: number | undefined): string {
+  if (line == null) return filePath;
+  if (column == null) return `${filePath}:${line}`;
+  return `${filePath}:${line}:${column}`;
 }
 
 /**
@@ -104,7 +106,8 @@ export function resolveIconNames(
     const type = determineIconType(rawName);
     const key: IconKey = `${iconSlug}:${type}`;
     const line = node.loc?.start.line;
-    const location = formatLocation(filePath, line);
+    const column = node.loc?.start.column;
+    const location = formatLocation(filePath, line, column);
 
     if (resolved.has(key)) return;
 

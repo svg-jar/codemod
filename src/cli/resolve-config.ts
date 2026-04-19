@@ -1,6 +1,7 @@
+import type { CliConfig } from '#cli/run-codemod.ts';
+import type { CliFlags } from '#src/cli.ts';
 import { statSync } from 'node:fs';
 import path from 'node:path';
-import type { CliConfig, CliFlags } from '#cli/types.ts';
 
 const TEMPLATE_EXTENSIONS = new Set(['.gjs', '.gts']);
 
@@ -37,7 +38,7 @@ export function inferProjectRoot(absPath: string): string | undefined {
  *    `targetDir` is set to scope file discovery.
  *
  * When the project root is inferred (cases 2 and 3), `inferredProjectRoot`
- * is set so that `runCli` can prompt the user to confirm or correct it.
+ * is set so that `runCodemod` can prompt the user to confirm or correct it.
  *
  * @param flags Raw flags from commander.
  * @param cwd   The current working directory (injected for testability).

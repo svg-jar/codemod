@@ -1,6 +1,6 @@
-import path from 'node:path';
 import type { UsedIcon } from '#lib/resolve-icon-names.ts';
 import { applyImportAlias, type ImportAlias } from '#lib/resolve-import-alias.ts';
+import path from 'node:path';
 
 /**
  * Builds the import path for an icon component.

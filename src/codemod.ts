@@ -1,10 +1,9 @@
+import { readImportAliases, readSourceDirs } from '#lib/file-system.ts';
+import { addIconImports, replaceMustachesWithComponents } from '#lib/replace-mustaches.ts';
+import { resolveIconNames, type AmbiguousIconRef, type UnresolvedIconRef } from '#lib/resolve-icon-names.ts';
+import type { ImportAlias } from '#lib/resolve-import-alias.ts';
 import { z, type ASTNode } from 'zmod';
 import { emberParser } from 'zmod-ember';
-import type { ImportAlias } from '#lib/resolve-import-alias.ts';
-import { readImportAliases, readSourceDirs } from '#lib/file-system.ts';
-import { resolveIconNames, type AmbiguousIconRef, type UnresolvedIconRef } from '#lib/resolve-icon-names.ts';
-export type { AmbiguousIconRef, UnresolvedIconRef } from '#lib/resolve-icon-names.ts';
-import { replaceMustachesWithComponents, addIconImports } from '#lib/replace-mustaches.ts';
 
 const j = z.withParser(emberParser);
 

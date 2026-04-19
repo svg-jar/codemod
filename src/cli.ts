@@ -1,9 +1,20 @@
 #!/usr/bin/env node
+import { resolveConfig } from '#cli/resolve-config.ts';
+import { runCodemod } from '#cli/run-codemod.ts';
 import { Command } from 'commander';
 import packageJson from '../package.json' with { type: 'json' };
-import { resolveConfig } from '#cli/resolve-config.ts';
-import { runCli } from '#cli/run-cli.ts';
-import type { CliFlags } from '#cli/types.ts';
+
+/**
+ * Raw flags parsed from commander before any defaults or prompts are applied.
+ */
+export interface CliFlags {
+  /** Path to the project root, a subdirectory, or a specific file. Defaults to ".". */
+  path?: string;
+  /** Run without writing files to disk. */
+  dryRun?: boolean;
+  /** Ask for confirmation after each file. */
+  confirm?: boolean;
+}
 
 async function main() {
   const program = new Command();
@@ -27,7 +38,7 @@ async function main() {
   };
 
   const config = resolveConfig(flags);
-  await runCli(config);
+  await runCodemod(config);
 }
 
 main().catch((error: unknown) => {

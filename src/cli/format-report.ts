@@ -1,5 +1,5 @@
 import pc from 'picocolors';
-import type { FileResult } from '#cli/types.ts';
+import type { FileResult } from '#cli/run-codemod.ts';
 
 /**
  * Formats the results of the codemod run into an ESLint-style report string.

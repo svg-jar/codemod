@@ -1,21 +1,64 @@
-import { readFileSync, writeFileSync } from 'node:fs';
-import path from 'node:path';
+import { formatReport } from '#cli/format-report.ts';
+import { defaultBanner, gradientBanner } from '#lib/banners.ts';
+import { findTemplateFiles, readImportAliases, readSourceDirs } from '#lib/file-system.ts';
+import { transform, type TransformResult } from '#src/codemod.ts';
 import {
+  cancel,
   confirm as clackConfirm,
   text as clackText,
   intro,
   isCancel,
-  cancel,
   log,
   outro,
   spinner,
 } from '@clack/prompts';
+import { readFileSync, writeFileSync } from 'node:fs';
+import path from 'node:path';
 import pc from 'picocolors';
-import { defaultBanner, gradientBanner } from '#lib/banners.ts';
-import { findTemplateFiles, readImportAliases, readSourceDirs } from '#lib/file-system.ts';
-import { transform } from '#src/codemod.ts';
-import { formatReport } from '#cli/format-report.ts';
-import type { CliConfig, FileResult } from '#cli/types.ts';
+
+/**
+ * Fully resolved configuration used by the CLI run loop.
+ */
+export interface CliConfig {
+  /** Absolute path to the Ember project root. */
+  projectRoot: string;
+  /**
+   * Run without writing files to disk. When `undefined`, the CLI will
+   * prompt the user interactively (after the intro banner).
+   */
+  dryRun?: boolean;
+  /** Ask for confirmation after each file. */
+  confirm: boolean;
+  /**
+   * When set, only these files are processed instead of discovering all
+   * template files in the project. Paths are relative to `projectRoot`.
+   */
+  files?: string[];
+  /**
+   * When set, only discover template files under this subdirectory
+   * (relative to `projectRoot`). Used when the user passes a directory
+   * path that is inside a project (e.g. `app/components/`).
+   */
+  targetDir?: string;
+  /**
+   * When the project root was inferred from a file or subdirectory path,
+   * this holds the inferred value so `runCodemod` can prompt the user to
+   * confirm or correct it.
+   */
+  inferredProjectRoot?: string;
+}
+
+/**
+ * Result of transforming a single file, enriched with the file path.
+ */
+export interface FileResult {
+  /** Path to the file, relative to the project root. */
+  filePath: string;
+  /** Whether the file was modified by the transform. */
+  changed: boolean;
+  /** The transform result (output, unresolved icons, ambiguous icons). */
+  result: TransformResult;
+}
 
 /**
  * Main CLI orchestrator. Discovers files, transforms them, and prints a report.
@@ -23,7 +66,7 @@ import type { CliConfig, FileResult } from '#cli/types.ts';
  * This function is the testable core of the CLI — it receives a fully resolved
  * config and does not parse command-line arguments itself.
  */
-export async function runCli(config: CliConfig): Promise<FileResult[]> {
+export async function runCodemod(config: CliConfig): Promise<FileResult[]> {
   let { projectRoot } = config;
   const hasColors = process.stdout.hasColors?.(8) ?? false;
   const isInteractive = process.stdout.isTTY === true && process.stdin.isTTY === true;

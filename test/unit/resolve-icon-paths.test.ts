@@ -124,7 +124,7 @@ import svgJar from 'ember-svg-jar/helpers/svg-jar';
     it('reports the missing icon in unresolvedIcons with location', () => {
       expect(unresolvedIcons).toEqual([
         {
-          location: 'app/components/example.gjs:5',
+          location: 'app/components/example.gjs:5:2',
           slug: 'missing-icon',
         },
       ]);
@@ -204,7 +204,7 @@ import svgJar from 'ember-svg-jar/helpers/svg-jar';
     it('reports the duplicate icon in ambiguousIcons with location', () => {
       expect(ambiguousIcons).toEqual([
         {
-          location: 'app/components/example.gjs:5',
+          location: 'app/components/example.gjs:5:2',
           slug: 'arrow',
           paths: ['public/icons/arrow.svg', 'vendor/icons/arrow.svg'],
         },
