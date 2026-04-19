@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { formatReport } from '#cli/format-report.ts';
-import type { FileResult } from '#cli/run-codemod.ts';
+import type { FileResult } from '#cli/resolve-config.ts';
 
 describe('formatReport', () => {
   it('reports unresolved icons with location', () => {

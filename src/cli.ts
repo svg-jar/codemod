@@ -1,20 +1,8 @@
 #!/usr/bin/env node
-import { resolveConfig } from '#cli/resolve-config.ts';
+import { resolveConfig, type CliFlags } from '#cli/resolve-config.ts';
 import { runCodemod } from '#cli/run-codemod.ts';
 import { Command } from 'commander';
 import packageJson from '../package.json' with { type: 'json' };
-
-/**
- * Raw flags parsed from commander before any defaults or prompts are applied.
- */
-export interface CliFlags {
-  /** Path to the project root, a subdirectory, or a specific file. Defaults to ".". */
-  path?: string;
-  /** Run without writing files to disk. */
-  dryRun?: boolean;
-  /** Ask for confirmation after each file. */
-  confirm?: boolean;
-}
 
 async function main() {
   const program = new Command();
@@ -26,6 +14,7 @@ async function main() {
     .argument('[path]', 'Path to the project root (defaults to current directory)')
     .option('-d, --dry-run', 'Run the codemod without writing changes to disk')
     .option('-c, --confirm', 'Ask for confirmation before writing each file')
+    .option('-C, --clean-config', 'Remove the svgJar config from ember-cli-build.js after migrating')
     .parse(process.argv);
 
   const opts = program.opts<Omit<CliFlags, 'path'>>();
@@ -35,6 +24,7 @@ async function main() {
     path: pathArg,
     dryRun: opts.dryRun,
     confirm: opts.confirm,
+    cleanConfig: opts.cleanConfig,
   };
 
   const config = resolveConfig(flags);

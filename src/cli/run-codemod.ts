@@ -1,7 +1,9 @@
+import { type CliConfig, type FileResult } from '#cli/resolve-config.ts';
 import { formatReport } from '#cli/format-report.ts';
-import { defaultBanner, gradientBanner } from '#lib/banners.ts';
-import { findTemplateFiles, readImportAliases, readSourceDirs } from '#lib/file-system.ts';
-import { transform, type TransformResult } from '#src/codemod.ts';
+import { defaultBanner, gradientBanner } from '#cli/banners.ts';
+import { findEmberCliBuildFile, findTemplateFiles, readImportAliases, readSourceDirs } from '#lib/file-system.ts';
+import { removeSvgJarConfig } from '#lib/remove-svg-jar-config.ts';
+import { transform, type TransformOptions } from '#src/codemod.ts';
 import {
   cancel,
   confirm as clackConfirm,
@@ -13,65 +15,11 @@ import {
   spinner,
 } from '@clack/prompts';
 import { readFileSync, writeFileSync } from 'node:fs';
+import { basename } from 'node:path';
 import path from 'node:path';
 import pc from 'picocolors';
 
-/**
- * Fully resolved configuration used by the CLI run loop.
- */
-export interface CliConfig {
-  /** Absolute path to the Ember project root. */
-  projectRoot: string;
-  /**
-   * Run without writing files to disk. When `undefined`, the CLI will
-   * prompt the user interactively (after the intro banner).
-   */
-  dryRun?: boolean;
-  /** Ask for confirmation after each file. */
-  confirm: boolean;
-  /**
-   * When set, only these files are processed instead of discovering all
-   * template files in the project. Paths are relative to `projectRoot`.
-   */
-  files?: string[];
-  /**
-   * When set, only discover template files under this subdirectory
-   * (relative to `projectRoot`). Used when the user passes a directory
-   * path that is inside a project (e.g. `app/components/`).
-   */
-  targetDir?: string;
-  /**
-   * When the project root was inferred from a file or subdirectory path,
-   * this holds the inferred value so `runCodemod` can prompt the user to
-   * confirm or correct it.
-   */
-  inferredProjectRoot?: string;
-}
-
-/**
- * Result of transforming a single file, enriched with the file path.
- */
-export interface FileResult {
-  /** Path to the file, relative to the project root. */
-  filePath: string;
-  /** Whether the file was modified by the transform. */
-  changed: boolean;
-  /** The transform result (output, unresolved icons, ambiguous icons). */
-  result: TransformResult;
-}
-
-/**
- * Main CLI orchestrator. Discovers files, transforms them, and prints a report.
- *
- * This function is the testable core of the CLI — it receives a fully resolved
- * config and does not parse command-line arguments itself.
- */
-export async function runCodemod(config: CliConfig): Promise<FileResult[]> {
-  let { projectRoot } = config;
-  const hasColors = process.stdout.hasColors?.(8) ?? false;
-  const isInteractive = process.stdout.isTTY === true && process.stdin.isTTY === true;
-
-  // Banner
+function showIntro(isInteractive: boolean, hasColors: boolean): void {
   console.log('');
   intro(isInteractive && hasColors ? pc.bold(gradientBanner) : defaultBanner);
 
@@ -84,27 +32,26 @@ export async function runCodemod(config: CliConfig): Promise<FileResult[]> {
     `  3. Replace mustache calls with ${pc.cyan('<Component />')} invocations`,
     `  4. Add the corresponding ${pc.cyan('import')} statements`,
   ]);
+}
 
-  // When the project root was inferred from a file or subdirectory path,
-  // prompt the user to confirm or correct it.
-  if (config.inferredProjectRoot && isInteractive) {
-    const answer = await clackText({
-      message: 'Project root:',
-      initialValue: config.inferredProjectRoot,
-    });
-    if (isCancel(answer)) {
-      cancel('Cancelled.');
-      process.exit(0);
-    }
-    projectRoot = path.resolve(answer);
+async function resolveProjectRoot(config: CliConfig, isInteractive: boolean): Promise<string> {
+  if (!config.inferredProjectRoot || !isInteractive) return config.projectRoot;
+
+  const answer = await clackText({
+    message: 'Project root:',
+    initialValue: config.inferredProjectRoot,
+  });
+  if (isCancel(answer)) {
+    cancel('Cancelled.');
+    process.exit(0);
   }
+  return path.resolve(answer);
+}
 
-  // Resolve dry-run mode. If the flag wasn't set, prompt interactively or
-  // default to writing (non-interactive environments like CI).
-  let dryRun: boolean;
-  if (config.dryRun !== undefined) {
-    dryRun = config.dryRun;
-  } else if (isInteractive) {
+async function resolveDryRun(config: CliConfig, isInteractive: boolean): Promise<boolean> {
+  if (config.dryRun !== undefined) return config.dryRun;
+
+  if (isInteractive) {
     const answer = await clackConfirm({
       message: 'Dry run? (no file changes)',
       initialValue: false,
@@ -113,16 +60,13 @@ export async function runCodemod(config: CliConfig): Promise<FileResult[]> {
       cancel('Cancelled.');
       process.exit(0);
     }
-    dryRun = answer;
-  } else {
-    dryRun = false;
+    return answer;
   }
 
-  if (dryRun) {
-    log.info('Dry run mode — no files will be written.');
-  }
+  return false;
+}
 
-  // Discover project configuration
+function readProjectConfig(projectRoot: string): Pick<TransformOptions, 'sourceDirs' | 'importAliases'> {
   log.step('Reading project configuration...');
   const sourceDirs = readSourceDirs(projectRoot);
   const importAliases = readImportAliases(projectRoot);
@@ -130,10 +74,12 @@ export async function runCodemod(config: CliConfig): Promise<FileResult[]> {
   if (importAliases.length > 0) {
     log.info(`Import aliases: ${importAliases.map((a) => a.alias).join(', ')}`);
   }
+  return { sourceDirs, importAliases };
+}
 
-  // Discover template files — use explicit file list, scoped directory, or
-  // full project discovery.
+function discoverTemplateFiles(config: CliConfig, projectRoot: string): string[] | null {
   log.step('Discovering template files...');
+
   let templateFiles: string[];
   if (config.files) {
     templateFiles = config.files;
@@ -152,10 +98,19 @@ export async function runCodemod(config: CliConfig): Promise<FileResult[]> {
   if (templateFiles.length === 0) {
     log.warn('No .gjs or .gts files found.');
     outro('Nothing to do.');
-    return [];
+    return null;
   }
 
-  // Transform files
+  return templateFiles;
+}
+
+async function transformFiles(
+  templateFiles: string[],
+  projectRoot: string,
+  transformOptions: TransformOptions,
+  config: CliConfig,
+  dryRun: boolean,
+): Promise<FileResult[]> {
   log.step('Transforming files...');
   const results: FileResult[] = [];
   const s = spinner();
@@ -165,13 +120,11 @@ export async function runCodemod(config: CliConfig): Promise<FileResult[]> {
 
     const absolutePath = path.join(projectRoot, filePath);
     const source = readFileSync(absolutePath, 'utf-8');
-    const result = transform(source, filePath, { projectRoot, sourceDirs, importAliases });
+    const result = transform(source, filePath, transformOptions);
     const changed = result.output !== source;
 
     if (changed) {
-      if (!dryRun) {
-        writeFileSync(absolutePath, result.output, 'utf-8');
-      }
+      if (!dryRun) writeFileSync(absolutePath, result.output, 'utf-8');
       s.stop(`${pc.bold(filePath)} — ${dryRun ? pc.yellow('would change (dry run)') : pc.green('changed')}`);
     } else {
       s.stop(`${pc.bold(filePath)} — ${pc.dim('no changes')}`);
@@ -191,6 +144,10 @@ export async function runCodemod(config: CliConfig): Promise<FileResult[]> {
     results.push({ filePath, changed, result });
   }
 
+  return results;
+}
+
+function showOutro(results: FileResult[], dryRun: boolean, hasColors: boolean): void {
   const changedCount = results.filter((r) => r.changed).length;
   if (dryRun && changedCount > 0) {
     outro(`Dry run complete. ${changedCount} ${changedCount === 1 ? 'file' : 'files'} would be changed.`);
@@ -198,11 +155,92 @@ export async function runCodemod(config: CliConfig): Promise<FileResult[]> {
     outro('Done!');
   }
 
-  // Report is printed after the clack outro so it stands on its own.
   const report = formatReport(results, hasColors);
-  if (report.trim()) {
-    console.log(report);
+  if (report.trim()) console.log(report);
+}
+
+async function maybeCleanConfig({
+  config,
+  results,
+  projectRoot,
+  dryRun,
+  isInteractive,
+}: {
+  config: CliConfig;
+  results: FileResult[];
+  projectRoot: string;
+  dryRun: boolean;
+  isInteractive: boolean;
+}): Promise<void> {
+  if (!config.cleanConfig || config.files || config.targetDir) return;
+
+  const hasUnresolved = results.some((r) => r.result.unresolvedIcons.length > 0);
+  if (hasUnresolved) {
+    log.warn(
+      'svgJar config was not removed from ember-cli-build.js — some icons could not be resolved.\n' +
+        'Resolve them first, then re-run with --clean-config.',
+    );
+    return;
   }
+
+  const buildFile = findEmberCliBuildFile(projectRoot);
+  if (!buildFile) {
+    log.warn('Could not find ember-cli-build.js — skipping config removal.');
+    return;
+  }
+
+  const buildFileName = basename(buildFile);
+
+  if (dryRun) {
+    log.info(`Would remove svgJar config from ${buildFileName} (dry run).`);
+    return;
+  }
+
+  if (isInteractive) {
+    const answer = await clackConfirm({
+      message: `Remove svgJar config from ${buildFileName}?`,
+      initialValue: true,
+    });
+    if (isCancel(answer)) {
+      cancel('Cancelled.');
+      process.exit(0);
+    }
+    if (!answer) return;
+  }
+
+  const buildSource = readFileSync(buildFile, 'utf-8');
+  writeFileSync(buildFile, removeSvgJarConfig(buildSource), 'utf-8');
+  log.success(`Removed svgJar config from ${buildFileName}.`);
+}
+
+/**
+ * Main CLI orchestrator. Discovers files, transforms them, and prints a report.
+ *
+ * This function is the testable core of the CLI — it receives a fully resolved
+ * config and does not parse command-line arguments itself.
+ */
+export async function runCodemod(config: CliConfig): Promise<FileResult[]> {
+  const hasColors = process.stdout.hasColors?.(8) ?? false;
+  const isInteractive = process.stdout.isTTY === true && process.stdin.isTTY === true;
+
+  showIntro(isInteractive, hasColors);
+
+  const projectRoot = await resolveProjectRoot(config, isInteractive);
+  const dryRun = await resolveDryRun(config, isInteractive);
+
+  if (dryRun) log.info('Dry run mode — no files will be written.');
+
+  const { sourceDirs, importAliases } = readProjectConfig(projectRoot);
+
+  const templateFiles = discoverTemplateFiles(config, projectRoot);
+  if (!templateFiles) return [];
+
+  const transformOptions: TransformOptions = { projectRoot, sourceDirs, importAliases };
+  const results = await transformFiles(templateFiles, projectRoot, transformOptions, config, dryRun);
+
+  await maybeCleanConfig({ config, results, projectRoot, dryRun, isInteractive });
+
+  showOutro(results, dryRun, hasColors);
 
   return results;
 }

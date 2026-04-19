@@ -1,5 +1,6 @@
 // Core transform functions
 export { transform, run } from '#src/codemod.ts';
+export { removeSvgJarConfig } from '#lib/remove-svg-jar-config.ts';
 
 // Options and result types
 export type { Options, TransformOptions, TransformResult } from '#src/codemod.ts';

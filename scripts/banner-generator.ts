@@ -1,7 +1,7 @@
 import gradient from 'gradient-string';
 import path from 'node:path';
 import fs from 'node:fs/promises';
-import { defaultBanner } from '#lib/banners.ts';
+import { defaultBanner } from '#cli/banners.ts';
 
 const gradientString = gradient(
   [
@@ -11,7 +11,7 @@ const gradientString = gradient(
   { interpolation: 'hsv' },
 )(defaultBanner);
 
-const bannerFilePath = path.resolve(import.meta.dirname, '../lib/banners.ts');
+const bannerFilePath = path.resolve(import.meta.dirname, '../src/cli/banners.ts');
 
 console.log(`Updating banner in ${bannerFilePath}...`);
 

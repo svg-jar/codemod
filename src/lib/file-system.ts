@@ -10,6 +10,21 @@ const DEFAULT_SOURCE_DIRS = ['public'];
 const EMBER_CLI_BUILD_FILES = ['ember-cli-build.js', 'ember-cli-build.mjs', 'ember-cli-build.cjs'];
 
 /**
+ * Returns the absolute path to the ember-cli-build config file in the project
+ * root, trying `.js`, `.mjs`, and `.cjs` extensions in order. Returns
+ * `undefined` if none exist.
+ *
+ * @param projectRoot Absolute path to the Ember project root.
+ */
+export function findEmberCliBuildFile(projectRoot: string): string | undefined {
+  for (const fileName of EMBER_CLI_BUILD_FILES) {
+    const filePath = path.join(projectRoot, fileName);
+    if (existsSync(filePath)) return filePath;
+  }
+  return undefined;
+}
+
+/**
  * Reads the ember-cli-build config file from the project root and extracts
  * the svgJar source directories. Tries `.js`, `.mjs`, and `.cjs` extensions.
  * Falls back to `['public']` when no config file is found or it contains no

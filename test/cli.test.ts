@@ -231,6 +231,74 @@ describe('CLI integration', () => {
     });
   });
 
+  describe('--clean-config', () => {
+    it('removes the svgJar config from ember-cli-build.mjs after a clean migration', async () => {
+      // Remove broken-component so there are no unresolved icons.
+      rmSync(path.join(tmpDir, 'app/components/broken-component.gjs'));
+
+      await runCli([tmpDir, '--clean-config']);
+
+      const buildFile = readFileSync(path.join(tmpDir, 'ember-cli-build.mjs'), 'utf-8');
+      expect(buildFile).not.toContain('svgJar');
+    });
+
+    it('does not remove the config in dry-run mode', async () => {
+      rmSync(path.join(tmpDir, 'app/components/broken-component.gjs'));
+      const buildFileBefore = readFileSync(path.join(tmpDir, 'ember-cli-build.mjs'), 'utf-8');
+
+      await runCli([tmpDir, '--dry-run', '--clean-config']);
+
+      const buildFileAfter = readFileSync(path.join(tmpDir, 'ember-cli-build.mjs'), 'utf-8');
+      expect(buildFileAfter).toBe(buildFileBefore);
+    });
+
+    it('reports that it would remove the config in dry-run mode', async () => {
+      rmSync(path.join(tmpDir, 'app/components/broken-component.gjs'));
+
+      const result = await runCli([tmpDir, '--dry-run', '--clean-config']);
+
+      expect(result.stdout).toContain('ember-cli-build.mjs');
+      expect(result.stdout).toContain('dry run');
+    });
+
+    it('does not remove the config when there are unresolved icons', async () => {
+      const buildFileBefore = readFileSync(path.join(tmpDir, 'ember-cli-build.mjs'), 'utf-8');
+
+      await runCli([tmpDir, '--clean-config']);
+
+      const buildFileAfter = readFileSync(path.join(tmpDir, 'ember-cli-build.mjs'), 'utf-8');
+      expect(buildFileAfter).toBe(buildFileBefore);
+    });
+
+    it('warns when there are unresolved icons', async () => {
+      const result = await runCli([tmpDir, '--clean-config']);
+
+      expect(result.stdout).toContain('could not be resolved');
+    });
+
+    it('does not remove the config when scoped to a single file', async () => {
+      rmSync(path.join(tmpDir, 'app/components/broken-component.gjs'));
+      const buildFileBefore = readFileSync(path.join(tmpDir, 'ember-cli-build.mjs'), 'utf-8');
+
+      const filePath = path.join(tmpDir, 'app/components/navbar.gjs');
+      await runCli([filePath, '--clean-config']);
+
+      const buildFileAfter = readFileSync(path.join(tmpDir, 'ember-cli-build.mjs'), 'utf-8');
+      expect(buildFileAfter).toBe(buildFileBefore);
+    });
+
+    it('does not remove the config when scoped to a subdirectory', async () => {
+      rmSync(path.join(tmpDir, 'app/components/broken-component.gjs'));
+      const buildFileBefore = readFileSync(path.join(tmpDir, 'ember-cli-build.mjs'), 'utf-8');
+
+      const dirPath = path.join(tmpDir, 'app/templates');
+      await runCli([dirPath, '--clean-config']);
+
+      const buildFileAfter = readFileSync(path.join(tmpDir, 'ember-cli-build.mjs'), 'utf-8');
+      expect(buildFileAfter).toBe(buildFileBefore);
+    });
+  });
+
   describe('subdirectory path', () => {
     it('only processes files under the given directory', async () => {
       const dirPath = path.join(tmpDir, 'app/templates');

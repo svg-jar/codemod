@@ -1,7 +1,65 @@
-import type { CliConfig } from '#cli/run-codemod.ts';
-import type { CliFlags } from '#src/cli.ts';
 import { statSync } from 'node:fs';
 import path from 'node:path';
+
+/**
+ * Raw flags parsed from commander before any defaults or prompts are applied.
+ */
+export interface CliFlags {
+  /** Path to the project root, a subdirectory, or a specific file. Defaults to ".". */
+  path?: string;
+  /** Run without writing files to disk. */
+  dryRun?: boolean;
+  /** Ask for confirmation after each file. */
+  confirm?: boolean;
+  /** Remove the svgJar config from ember-cli-build.js after a successful migration. */
+  cleanConfig?: boolean;
+}
+
+/**
+ * Fully resolved configuration used by the CLI run loop.
+ */
+export interface CliConfig {
+  /** Absolute path to the Ember project root. */
+  projectRoot: string;
+  /**
+   * Run without writing files to disk. When `undefined`, the CLI will
+   * prompt the user interactively (after the intro banner).
+   */
+  dryRun?: boolean;
+  /** Ask for confirmation after each file. */
+  confirm: boolean;
+  /**
+   * When set, only these files are processed instead of discovering all
+   * template files in the project. Paths are relative to `projectRoot`.
+   */
+  files?: string[];
+  /**
+   * When set, only discover template files under this subdirectory
+   * (relative to `projectRoot`). Used when the user passes a directory
+   * path that is inside a project (e.g. `app/components/`).
+   */
+  targetDir?: string;
+  /**
+   * When the project root was inferred from a file or subdirectory path,
+   * this holds the inferred value so `runCodemod` can prompt the user to
+   * confirm or correct it.
+   */
+  inferredProjectRoot?: string;
+  /** Remove the svgJar config from ember-cli-build.js after a successful migration. */
+  cleanConfig: boolean;
+}
+
+/**
+ * Result of transforming a single file, enriched with the file path.
+ */
+export interface FileResult {
+  /** Path to the file, relative to the project root. */
+  filePath: string;
+  /** Whether the file was modified by the transform. */
+  changed: boolean;
+  /** The transform result (output, unresolved icons, ambiguous icons). */
+  result: import('#src/codemod.ts').TransformResult;
+}
 
 const TEMPLATE_EXTENSIONS = new Set(['.gjs', '.gts']);
 
@@ -47,12 +105,15 @@ export function resolveConfig(flags: CliFlags, cwd: string = process.cwd()): Cli
   const resolvedPath = path.resolve(cwd, flags.path ?? '.');
   const pathType = getPathType(resolvedPath);
 
+  const cleanConfig = flags.cleanConfig ?? false;
+
   // Case 1: No path or project root directory — discover everything.
   if (pathType === 'directory' && !flags.path) {
     return {
       projectRoot: resolvedPath,
       dryRun: flags.dryRun,
       confirm: flags.confirm ?? false,
+      cleanConfig,
     };
   }
 
@@ -66,6 +127,7 @@ export function resolveConfig(flags: CliFlags, cwd: string = process.cwd()): Cli
       confirm: flags.confirm ?? false,
       files: [path.relative(projectRoot, resolvedPath)],
       inferredProjectRoot: inferred,
+      cleanConfig,
     };
   }
 
@@ -80,6 +142,7 @@ export function resolveConfig(flags: CliFlags, cwd: string = process.cwd()): Cli
       confirm: flags.confirm ?? false,
       targetDir: path.relative(inferred, resolvedPath),
       inferredProjectRoot: inferred,
+      cleanConfig,
     };
   }
 
@@ -88,6 +151,7 @@ export function resolveConfig(flags: CliFlags, cwd: string = process.cwd()): Cli
     projectRoot: resolvedPath,
     dryRun: flags.dryRun,
     confirm: flags.confirm ?? false,
+    cleanConfig,
   };
 }
 
