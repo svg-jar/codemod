@@ -1,0 +1,7 @@
+{
+  "name": "my-ember-app",
+  "imports": {
+    "#public/*": "./public/*",
+    "#vendor-icons/*": "./vendor/icons/*"
+  }
+}

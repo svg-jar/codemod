@@ -1,0 +1,75 @@
+{
+  "name": "@svg-jar/codemod",
+  "version": "0.0.1",
+  "description": "A codemod to help users migrate away from ember-svg-jar",
+  "keywords": [
+    "ember-svg-jar",
+    "codemod",
+    "svg-jar",
+    "svg",
+    "ember-codemod"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/svg-jar/svg-jar",
+    "directory": "packages/codemod"
+  },
+  "license": "MIT",
+  "author": "Liam Potter <liam@liampotter.co.uk>",
+  "type": "module",
+  "imports": {
+    "#src/*": "./src/*",
+    "#cli/*": "./src/cli/*",
+    "#lib/*": "./src/lib/*",
+    "#types/*": "./src/types/*",
+    "#utils/*": "./src/utils/*",
+    "#test/*": "./test/*"
+  },
+  "exports": {
+    ".": {
+      "types": "./dist/codemod.d.mts",
+      "default": "./dist/codemod.mjs"
+    }
+  },
+  "main": "./dist/codemod.mjs",
+  "types": "./dist/codemod.d.mts",
+  "bin": {
+    "svg-jar-codemod": "./dist/cli.mjs"
+  },
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "tsdown",
+    "format": "prettier --write .",
+    "lint": "eslint .",
+    "lint:fix": "eslint . --fix",
+    "test": "vitest run",
+    "test:ui": "vitest --ui",
+    "test:watch": "vitest",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@clack/prompts": "^1.1.0",
+    "commander": "^14.0.3",
+    "picocolors": "^1.1.1",
+    "tinyglobby": "^0.2.16",
+    "zmod": "^0.3.1",
+    "zmod-ember": "^0.3.0"
+  },
+  "devDependencies": {
+    "@types/node": "^25.6.0",
+    "@vitest/ui": "^4.1.4",
+    "eslint": "^10.2.0",
+    "eslint-config-prettier": "^10.1.8",
+    "execa": "^9.6.0",
+    "gradient-string": "^3.0.0",
+    "jiti": "^2.6.1",
+    "prettier": "^3.8.2",
+    "tsdown": "^0.21.8",
+    "tsx": "^4.21.0",
+    "typescript-eslint": "^8.58.2",
+    "vitest": "^4.1.4"
+  },
+  "packageManager": "pnpm@10.32.1"
+}

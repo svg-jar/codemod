@@ -1,0 +1,68 @@
+diff --git a/dist/collection.d.ts b/dist/collection.d.ts
+index a0539b0e4831ee9e982e1c9b3014c644205bae47..3b046639a6dcd8d9e918c6b84cbc7e37f6390452 100644
+--- a/dist/collection.d.ts
++++ b/dist/collection.d.ts
+@@ -2,7 +2,7 @@ export interface ASTNode {
+     type: string;
+     start: number;
+     end: number;
+-    [key: string]: any;
++    [key: string]: unknown;
+ }
+ export declare class NodePath {
+     node: ASTNode;
+@@ -19,8 +19,8 @@ export declare class NodePath {
+         isGlobal: boolean;
+         path: NodePath;
+     } | null;
+-    getValueProperty(name: string): any;
+-    get(...names: (string | number)[]): any;
++    getValueProperty(name: string): unknown;
++    get(...names: (string | number)[]): NodePath;
+     each(callback: (path: NodePath, index: number) => void, _context?: any): void;
+     map(callback: (path: NodePath, index: number) => any, _context?: any): any[];
+     filter(callback: (path: NodePath, index: number) => boolean, _context?: any): any[];
+@@ -113,7 +113,7 @@ export declare class FilteredCollection {
+      * - get("callee") → first path's node.callee
+      * - get("callee", "name") → first path's node.callee.name
+      */
+-    get(...fields: (string | number)[]): any;
++    get(...fields: (string | number)[]): NodePath;
+     /**
+      * Find descendants of matched nodes.
+      */
+diff --git a/dist/jscodeshift.d.ts b/dist/jscodeshift.d.ts
+index 295431f08944e84c44a100920c46887077424b3b..bfa7f9cf78378b4a0b78be409fbfe8c008e9c80e 100644
+--- a/dist/jscodeshift.d.ts
++++ b/dist/jscodeshift.d.ts
+@@ -1,4 +1,5 @@
+ import { namedTypes } from "ast-types";
++import type { NamedTypes } from "ast-types/lib/gen/namedTypes";
+ import type { Parser, ParseOptions } from "./parser.js";
+ import { Collection, NodePath, type ASTNode } from "./collection.js";
+ export type { ASTNode } from "./collection.js";
+@@ -16,13 +17,13 @@ export { Collection, FilteredCollection, NodePath } from "./collection.js";
+  *   z.identifier("foo")
+  *   z.CallExpression  // type checker for find()
+  */
+-export interface ZFunction {
++export interface ZFunction extends NamedTypes {
+     (source: string, options?: ParseOptions): Collection;
+     match(path: ASTNode | NodePath, filter: Record<string, any> | ((node: ASTNode) => boolean)): boolean;
+     use(plugin: (core: any) => void): void;
+     withParser(parser: Parser): ZFunction;
+-    print(node: any): string;
+-    registerMethods(methods: Record<string, Function>, type?: any): void;
++    print(node: ASTNode): string;
++    registerMethods(methods: Record<string, Function>, type?: string): void;
+     types: typeof namedTypes;
+     template: {
+         statement: Function;
+@@ -43,7 +44,6 @@ export interface ZFunction {
+             getRootName(path: NodePath): string;
+         };
+     };
+-    [key: string]: any;
+ }
+ export declare const z: ZFunction;
+ export type JSCodeshift = typeof z;
