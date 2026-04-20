@@ -1,4 +1,4 @@
-name: Codemod
+name: Codemod CI
 
 on:
   push:

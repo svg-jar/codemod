@@ -11,15 +11,11 @@
   ],
   "repository": {
     "type": "git",
-    "url": "https://github.com/svg-jar/svg-jar",
-    "directory": "packages/codemod"
+    "url": "https://github.com/svg-jar/codemod"
   },
   "license": "MIT",
   "author": "Liam Potter <liam@liampotter.co.uk>",
   "type": "module",
-  "engines": {
-    "node": ">=20"
-  },
   "imports": {
     "#src/*": "./src/*",
     "#cli/*": "./src/cli/*",
@@ -45,14 +41,15 @@
   "scripts": {
     "build": "tsdown",
     "format": "prettier --write .",
-    "prettier": "prettier --check .",
     "lint": "eslint .",
     "lint:fix": "eslint . --fix",
+    "prepublishOnly": "pnpm run sortPackageJson &&pnpm run build",
+    "prettier": "prettier --check .",
     "test": "vitest run",
     "test:ui": "vitest --ui",
     "test:watch": "vitest",
     "typecheck": "tsc --noEmit",
-    "prepublishOnly": "pnpm run build"
+    "sortPackageJson": "pnpm dlx sort-package-json"
   },
   "dependencies": {
     "@clack/prompts": "^1.1.0",
@@ -75,5 +72,8 @@
     "typescript-eslint": "^8.58.2",
     "vitest": "^4.1.4"
   },
-  "packageManager": "pnpm@10.32.1"
+  "packageManager": "pnpm@10.32.1",
+  "engines": {
+    "node": ">=20"
+  }
 }
