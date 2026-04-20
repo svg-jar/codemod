@@ -1,4 +1,14 @@
+<div align="center">
+
+<img alt="SvgJar" src="https://raw.githubusercontent.com/svg-jar/codemod/main/banner.svg">
+
 # @svg-jar/codemod
+
+[![npm version](https://img.shields.io/npm/v/@svg-jar/codemod?style=flat-square)](https://www.npmjs.com/package/@svg-jar/codemod)
+[![CI](https://img.shields.io/github/actions/workflow/status/svg-jar/codemod/ci.yaml?label=CI&style=flat-square)](https://github.com/svg-jar/codemod/actions/workflows/ci.yaml)
+[![License](https://img.shields.io/npm/l/@svg-jar/codemod?style=flat-square)](LICENSE)
+
+</div>
 
 A codemod that migrates Ember projects from `ember-svg-jar` to direct SVG component imports.
 
