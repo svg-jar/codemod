@@ -15,6 +15,7 @@
   },
   "license": "MIT",
   "author": "Liam Potter <liam@liampotter.co.uk>",
+  "sideEffects": false,
   "type": "module",
   "imports": {
     "#src/*": "./src/*",
@@ -45,11 +46,11 @@
     "lint:fix": "eslint . --fix",
     "prepublishOnly": "pnpm run sortPackageJson && pnpm run build",
     "prettier": "prettier --check .",
+    "sortPackageJson": "pnpm dlx sort-package-json",
     "test": "vitest run",
     "test:ui": "vitest --ui",
     "test:watch": "vitest",
-    "typecheck": "tsc --noEmit",
-    "sortPackageJson": "pnpm dlx sort-package-json"
+    "typecheck": "tsc --noEmit"
   },
   "dependencies": {
     "@clack/prompts": "^1.1.0",
@@ -72,12 +73,11 @@
     "typescript-eslint": "^8.58.2",
     "vitest": "^4.1.4"
   },
-  "publishConfig": {
-    "access": "public"
-  },
-  "sideEffects": false,
   "packageManager": "pnpm@10.32.1",
   "engines": {
     "node": ">=20"
+  },
+  "publishConfig": {
+    "access": "public"
   }
 }
