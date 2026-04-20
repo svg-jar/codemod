@@ -1,6 +1,8 @@
 <div align="center">
 
+<picture>
 <img alt="SvgJar" src="https://raw.githubusercontent.com/svg-jar/codemod/main/banner.svg">
+</picture>
 
 # @svg-jar/codemod
 
