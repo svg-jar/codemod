@@ -43,7 +43,7 @@
     "format": "prettier --write .",
     "lint": "eslint .",
     "lint:fix": "eslint . --fix",
-    "prepublishOnly": "pnpm run sortPackageJson &&pnpm run build",
+    "prepublishOnly": "pnpm run sortPackageJson && pnpm run build",
     "prettier": "prettier --check .",
     "test": "vitest run",
     "test:ui": "vitest --ui",
@@ -72,6 +72,10 @@
     "typescript-eslint": "^8.58.2",
     "vitest": "^4.1.4"
   },
+  "publishConfig": {
+    "access": "public"
+  },
+  "sideEffects": false,
   "packageManager": "pnpm@10.32.1",
   "engines": {
     "node": ">=20"
