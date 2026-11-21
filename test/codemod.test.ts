@@ -11,6 +11,7 @@ const templateOnlyFixture = readFixture('template-only.gjs');
 const templateOnlyTsFixture = readFixture('template-only.gts');
 const noImportsFixture = readFixture('no-imports.gjs');
 const renamedImportFixture = readFixture('renamed-import.gjs');
+const nameCollisionFixture = readFixture('name-collision.gjs');
 
 describe('class-backed.gjs', () => {
   const { output } = run(classBackedFixture, 'class-backed.gjs', { projectRoot });
@@ -135,5 +136,19 @@ describe('renamed-import.gjs', () => {
     expect(output).toContain('<SpriteIcon />');
     expect(output).not.toContain("import myCustomImportName from 'ember-svg-jar/helpers/svg-jar';");
     expect(output).not.toContain('{{myCustomImportName "icon-name"}}');
+  });
+});
+
+describe('name-collision.gjs', () => {
+  const { output } = run(nameCollisionFixture, 'name-collision.gjs', { projectRoot });
+
+  it('renames an icon whose name the file already uses', () => {
+    expect(output).toContain("import OneIconIcon2 from './public/one-icon.svg?unsafe-inline';");
+    expect(output).toContain('<OneIconIcon2 />');
+    expect(output).toContain("import OneIcon from './one-icon-component';");
+  });
+
+  it('keeps the plain name when it is free', () => {
+    expect(output).toContain("import Two from './public/two.svg?unsafe-inline';");
   });
 });

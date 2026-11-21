@@ -1,6 +1,12 @@
 import { readImportAliases, readSourceDirs } from '#lib/file-system.ts';
 import { addIconImports, replaceMustachesWithComponents } from '#lib/replace-mustaches.ts';
-import { resolveIconNames, type AmbiguousIconRef, type UnresolvedIconRef } from '#lib/resolve-icon-names.ts';
+import {
+  resolveIconNames,
+  type AmbiguousIconRef,
+  type IconKey,
+  type UnresolvedIconRef,
+  type UsedIcon,
+} from '#lib/resolve-icon-names.ts';
 import type { ImportAlias } from '#lib/resolve-import-alias.ts';
 import { z, type ASTNode } from 'zmod';
 import { emberParser } from 'zmod-ember';
@@ -96,6 +102,8 @@ export function transform(source: string, filePath: string, options: TransformOp
     ambiguous: ambiguousIcons,
   } = resolveIconNames(svgJarUsages, sourceDirs, projectRoot, filePath);
 
+  avoidNameCollisions(root, resolvedIcons);
+
   replaceMustachesWithComponents(svgJarUsages, resolvedIcons, source);
 
   // Only remove the svgJar import when every icon in the file was resolved.
@@ -108,6 +116,30 @@ export function transform(source: string, filePath: string, options: TransformOp
   addIconImports(root, resolvedIcons, filePath, importAliases);
 
   return { output: root.toSource(), unresolvedIcons, ambiguousIcons };
+}
+
+/**
+ * Renames icon components whose name the file already uses, such as an icon
+ * "link" in a file that imports a `Link` component. The icon gets an "Icon"
+ * suffix, then a number if that name is taken too.
+ */
+function avoidNameCollisions(root: ReturnType<typeof j>, resolvedIcons: Map<IconKey, UsedIcon>): void {
+  const taken = new Set<string>(
+    root
+      .find(j.Identifier)
+      .nodes()
+      .map((node: ASTNode) => String(node.name)),
+  );
+
+  for (const [key, icon] of resolvedIcons) {
+    let name = icon.componentName;
+    if (taken.has(name)) {
+      name = `${icon.componentName}Icon`;
+      for (let i = 2; taken.has(name); i++) name = `${icon.componentName}Icon${i}`;
+    }
+    taken.add(name);
+    if (name !== icon.componentName) resolvedIcons.set(key, { ...icon, componentName: name });
+  }
 }
 
 /**
