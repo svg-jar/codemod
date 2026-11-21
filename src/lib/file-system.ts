@@ -97,7 +97,8 @@ export interface IconPathResult {
  * detect ambiguity), or `undefined` if the file is not found anywhere.
  *
  * Source directories are searched in order; the first match is used as the
- * import path. When the icon exists in multiple directories, all paths are
+ * import path. A slug without a slash also matches a file of that name in a
+ * subfolder, as with ember-svg-jar's default `stripPath: true`. When the icon exists in multiple directories, all paths are
  * returned so the caller can warn the user.
  *
  * @param iconSlug    The icon identifier as used in `{{svgJar "icon-slug"}}`,
@@ -127,6 +128,17 @@ export function resolveIconPath(
     const candidate = path.join(projectRoot, dir, `${iconSlug}.svg`);
     if (existsSync(candidate)) {
       allPaths.push(`${dir}/${iconSlug}.svg`);
+    }
+  }
+
+  // ember-svg-jar defaults to `stripPath: true`, which names each icon by its
+  // file name alone, so "arrow" can be `public/icons/nav/arrow.svg`.
+  if (allPaths.length === 0 && !iconSlug.includes('/')) {
+    for (const dir of sourceDirs) {
+      const matches = globSync(`**/${iconSlug}.svg`, { cwd: path.join(projectRoot, dir) }).sort();
+      for (const match of matches) {
+        allPaths.push(`${dir}/${match}`);
+      }
     }
   }
 

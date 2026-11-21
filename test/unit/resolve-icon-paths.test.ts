@@ -216,4 +216,28 @@ import svgJar from 'ember-svg-jar/helpers/svg-jar';
       expect(slugs).not.toContain('star');
     });
   });
+
+  describe('icons in subfolders of a source dir', () => {
+    const projectRoot = path.join(SCENARIOS_DIR, 'nested-icons');
+    const source = `
+import svgJar from 'ember-svg-jar/helpers/svg-jar';
+
+<template>
+  {{svgJar "github"}}
+  {{svgJar "rust"}}
+  {{svgJar "top"}}
+</template>`;
+
+    const { output, unresolvedIcons } = run(source, 'app/components/example.gjs', { projectRoot });
+
+    it('resolves an icon by its file name, as ember-svg-jar does by default', () => {
+      expect(output).toContain("import Github from '../../public/assets/github.svg?unsafe-inline';");
+      expect(output).toContain("import Rust from '../../public/assets/brands/rust.svg?unsafe-inline';");
+      expect(unresolvedIcons).toEqual([]);
+    });
+
+    it('resolves an icon at the top of the source dir', () => {
+      expect(output).toContain("import Top from '../../public/top.svg?unsafe-inline';");
+    });
+  });
 });
